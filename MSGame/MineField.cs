@@ -91,16 +91,16 @@ namespace MSGame
             return (field[x, y] & 0x20) > 0;
         }
 
-        // **************************************************************
-        //  method :        public bool ToggleVisible(int x, int y)
+        // *************************************************************
+        //  method :        public void SetVisible(int x, int y)
         //  parameters :    int x - given x-coordinate of 2D field
         //                  int y - given y-coordinate of 2D field
-        //  purpose :       toggles visible bit of element field[x, y]
-        //                  this is done by xoring the visible bit (0x20)
-        // **************************************************************
-        public void ToggleVisible(int x, int y)
+        //  purpose :       sets visible bit of element field[x, y]
+        //                  this is done by oring the visible bit (0x20)
+        // *************************************************************
+        public void SetVisible(int x, int y)
         {
-            field[x, y] ^= 0x20;
+            field[x, y] |= 0x20;
         }
 
         // ***************************************************************************

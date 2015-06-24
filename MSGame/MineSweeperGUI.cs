@@ -27,8 +27,7 @@ namespace MSGame
         private int mineNumber;                         // current number of mines
 
         private bool gameOver;                          // is current game over?
-        private int flags;                              // number of flags created by user in current game
-        private int unclicked;                          // number of unclicked tiles in current game
+        private int visible;                            // tally of visible tiles
         private MineField mineFieldData;                // data for current game
 
         // constructor
@@ -48,8 +47,7 @@ namespace MSGame
             columnNumber = columnNumberDefault;
             mineNumber = mineNumberDefault;
             gameOver = false;
-            flags = 0;
-            unclicked = 0;
+            visible = 0;
             UpdateMineFieldSettingsInMenu();
         }
 
@@ -92,17 +90,15 @@ namespace MSGame
                 fieldRow = currentIndexData.Item2;                              // unpack row index
                 linearIndex = fieldRow * mineFieldData.Width + fieldCol;        // get control index
                 value = mineFieldData.GetValue(fieldCol, fieldRow);             // get number of adjacent mines
-                mineFieldData.ToggleVisible(fieldCol, fieldRow);                // toggle mine visibility to avoid uncovering twice
 
-                // adjust global game values for processing win condition
-                switch (mineFieldGUI.Controls[linearIndex].Text)
+                if (mineFieldData.IsVisible(fieldCol, fieldRow))
                 {
-                    case "":
-                        --unclicked;
-                        break;
-                    case "F":
-                        --flags;
-                        break;
+                    continue;
+                }
+                else
+                {
+                    mineFieldData.SetVisible(fieldCol, fieldRow);               // set mine visibility to avoid uncovering twice
+                    ++visible;                                                  // increment number of visible tiles
                 }
 
                 if (value != 0)
@@ -115,7 +111,7 @@ namespace MSGame
 
                     for (int col = fieldCol - 1; col < fieldCol + 2; ++col)
                         for (int row = fieldRow - 1; row < fieldRow + 2; ++row)
-                            if (!mineFieldData.IsOutOfBounds(col, row) && !mineFieldData.IsVisible(col, row))
+                            if (!mineFieldData.IsOutOfBounds(col, row))
                                 tiles.Push(Tuple.Create(col, row));
                 }
             }
@@ -146,7 +142,7 @@ namespace MSGame
         {
             if (gameOver)
                 MessageBox.Show("You have lost!");
-            else if (flags + unclicked == mineFieldData.Mines)
+            else if (mineFieldData.Width * mineFieldData.Height - visible == mineFieldData.Mines)
             {
                 gameOver = true;
                 MessageBox.Show("You have won!");
@@ -156,7 +152,6 @@ namespace MSGame
         // ***********************************************************************
         //  method :    private void ProcessRightClick(int controlIndex)
         //  purpose :   cycle through texts of given button in a well-defined way
-        //              and adjust global game values for processing win-condition
         // ***********************************************************************
         private void ProcessRightClick(int controlIndex)
         {
@@ -164,16 +159,12 @@ namespace MSGame
             {
                 case "":
                     mineFieldGUI.Controls[controlIndex].Text = "F";
-                    --unclicked;
-                    ++flags;
                     break;
                 case "F":
                     mineFieldGUI.Controls[controlIndex].Text = "?";
-                    --flags;
                     break;
                 case "?":
                     mineFieldGUI.Controls[controlIndex].Text = "";
-                    ++unclicked;
                     break;
             }
         }
@@ -221,8 +212,7 @@ namespace MSGame
 
             // reset game flags/data to reflect a new game/new parameters
             gameOver = false;
-            flags = 0;
-            unclicked = columnNumber * rowNumber;
+            visible = 0;
             mineFieldData = new MineField(columnNumber, rowNumber, mineNumber);
 
             // create buttons for mineFieldGUI to represent each point on mineFieldData.field
