@@ -9,7 +9,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
-
+using System.Collections.Generic;
 
 namespace MSGame
 {
@@ -53,65 +53,72 @@ namespace MSGame
             UpdateMineFieldSettingsInMenu();
         }
 
-        // ***************************************************************************
-        //  method :    private void UpdateClickedMineFieldTile(int controlIndex)
-        //  purpose :   routine for updating mineFieldGUI tiles based on corresponding
-        //              mineFieldData.field points.  Updates global game flags/values
-        //              in order to process win condition.  Depends on the method
-        //              UpdateZeroAdjacentMineTiles for the recursion case where the
-        //              button clicked has no adjacent mines
-        // ***************************************************************************
-        private void UpdateClickedMineFieldTile(int controlIndex)
+        // *******************************************************************************
+        //  method :    private void UncoverTile(int controlIndex)
+        //  purpose :   routine for uncovering mineFieldGUI tiles based on corresponding
+        //              mineFieldData.field points.  Checks whether tile has been checked
+        //              or is a mine before starting stack process.  Stack process takes
+        //              next tile to uncover, updates global game flags/values in order to
+        //              process win condition, then adds more tiles to the stack if the
+        //              adjacent mines are zero.
+        // *******************************************************************************
+        private void UncoverTile(int controlIndex)
         {
-            int fieldCol = controlIndex % mineFieldData.Width;          // get column from linear index
-            int fieldRow = controlIndex / mineFieldData.Width;          // get row from linear index
-            int value = mineFieldData.GetValue(fieldCol, fieldRow);     // get number of adjacent mines
+            Stack<Tuple<int, int>> tiles = new Stack<Tuple<int, int>>();        // stack for tile uncovering process
+            int fieldCol = controlIndex % mineFieldData.Width;                  // 2D column index from linear index
+            int fieldRow = controlIndex / mineFieldData.Width;                  // 2D row index from linear index
+            int linearIndex;                                                    // linear index for mineFieldGUI.Controls
+            int value;                                                          // mineFieldData.GetValue(fieldCol, fieldRow)
+            Tuple<int, int> currentIndexData;                                   // packaged fieldCol/fieldRow
 
-            // if tile is visible it has already been addressed so do nothing
-            if (mineFieldData.IsVisible(fieldCol, fieldRow) || gameOver)
+            // check that tile hasn't been clicked before
+            if (mineFieldData.IsVisible(fieldCol, fieldRow))
                 return;
 
-            mineFieldData.ToggleVisible(fieldCol, fieldRow);
-
-            // adjust global game values for processing win condition
-            switch (mineFieldGUI.Controls[controlIndex].Text)
-            {
-                case "":
-                    --unclicked;
-                    break;
-                case "F":
-                    --flags;
-                    break;
-            }
-
+            // check if tile is a mine before starting stack process
             if (mineFieldData.IsMine(fieldCol, fieldRow))
             {
                 mineFieldGUI.Controls[controlIndex].Text = "M";
                 gameOver = true;
+                return;
             }
-            else if (value != 0)
-                mineFieldGUI.Controls[controlIndex].Text = value.ToString();
 
-            // if number of adjacent mines is zero, enter recursion case to clear out all zeros in same group
-            else
-                UpdateZeroAdjacentMineTiles(controlIndex, fieldCol, fieldRow);
-        }
+            // begin stack process to uncover one or more tiles
+            tiles.Push(Tuple.Create(fieldCol, fieldRow));
+            while (tiles.Count != 0)
+            {
+                currentIndexData = tiles.Pop();                                 // grab next tile to uncover
+                fieldCol = currentIndexData.Item1;                              // unpack column index
+                fieldRow = currentIndexData.Item2;                              // unpack row index
+                linearIndex = fieldRow * mineFieldData.Width + fieldCol;        // get control index
+                value = mineFieldData.GetValue(fieldCol, fieldRow);             // get number of adjacent mines
+                mineFieldData.ToggleVisible(fieldCol, fieldRow);                // toggle mine visibility to avoid uncovering twice
 
-        // ***************************************************************************************************
-        //  method :    private void UpdateZeroAdjacentMineTiles(int controlIndex, int fieldCol, int fieldRow)
-        //  purpose :   subroutine for clearing out mineFieldGUI tiles with no adjacent mines
-        //              these tiles form a strongly-connected component on the grid and will all be cleared
-        //              via this recursion subroutine and the main routine as a stop-check
-        // ***************************************************************************************************
-        private void UpdateZeroAdjacentMineTiles(int controlIndex, int fieldCol, int fieldRow)
-        {
-            mineFieldGUI.Controls[controlIndex].Text = "";
-            ((Button)mineFieldGUI.Controls[controlIndex]).FlatStyle = FlatStyle.Flat;
+                // adjust global game values for processing win condition
+                switch (mineFieldGUI.Controls[linearIndex].Text)
+                {
+                    case "":
+                        --unclicked;
+                        break;
+                    case "F":
+                        --flags;
+                        break;
+                }
 
-            for (int col = fieldCol - 1; col < fieldCol + 2; ++col)
-                for (int row = fieldRow - 1; row < fieldRow + 2; ++row)
-                    if (!mineFieldData.IsOutOfBounds(col, row))
-                        UpdateClickedMineFieldTile(row * mineFieldData.Width + col);
+                if (value != 0)
+                    mineFieldGUI.Controls[linearIndex].Text = value.ToString();
+                else
+                {
+                    // if number of adjacent mines is zero, add all non-visible tiles surrounding to stack
+                    mineFieldGUI.Controls[linearIndex].Text = "";
+                    ((Button)mineFieldGUI.Controls[linearIndex]).FlatStyle = FlatStyle.Flat;
+
+                    for (int col = fieldCol - 1; col < fieldCol + 2; ++col)
+                        for (int row = fieldRow - 1; row < fieldRow + 2; ++row)
+                            if (!mineFieldData.IsOutOfBounds(col, row) && !mineFieldData.IsVisible(col, row))
+                                tiles.Push(Tuple.Create(col, row));
+                }
+            }
         }
 
         // **********************************************************************
@@ -125,7 +132,7 @@ namespace MSGame
                 case "":
                 case "F":
                 case "?":
-                    UpdateClickedMineFieldTile(controlIndex);
+                    UncoverTile(controlIndex);
                     break;
             }
         }
