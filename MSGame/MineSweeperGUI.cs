@@ -3,13 +3,14 @@
 //                 - depends on MineField class
 //
 //  Written by Jonathan Melcher on June 24, 2015
-//  Last updated June 24, 2015
+//  Last updated June 25, 2015
 // ***************************************************************************
 
 using System;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Collections.Generic;
+
 
 namespace MSGame
 {
@@ -28,7 +29,7 @@ namespace MSGame
 
         private bool gameOver;                          // is current game over?
         private int visible;                            // tally of visible tiles
-        private MineField mineFieldData;                // data for current game
+        private MineField mineFieldEngine;              // data for current game
 
         // constructor
         public MineSweeperGUI()
@@ -37,10 +38,10 @@ namespace MSGame
             InitMineFieldSettings();
         }
 
-        // *************************************************
+        // *******************************************************************************
         //  method :    private void InitMineFieldSettings()
-        //  purpose :   initialize globals and update GUI
-        // *************************************************
+        //  purpose :   initialize globals and update GUI to reflect default global values
+        // *******************************************************************************
         private void InitMineFieldSettings()
         {
             rowNumber = rowNumberDefault;
@@ -63,18 +64,18 @@ namespace MSGame
         private void UncoverTile(int controlIndex)
         {
             Stack<Tuple<int, int>> tiles = new Stack<Tuple<int, int>>();        // stack for tile uncovering process
-            int fieldCol = controlIndex % mineFieldData.Width;                  // 2D column index from linear index
-            int fieldRow = controlIndex / mineFieldData.Width;                  // 2D row index from linear index
+            int fieldCol = controlIndex % mineFieldEngine.Width;                // 2D column index from linear index
+            int fieldRow = controlIndex / mineFieldEngine.Width;                // 2D row index from linear index
             int linearIndex;                                                    // linear index for mineFieldGUI.Controls
             int value;                                                          // mineFieldData.GetValue(fieldCol, fieldRow)
-            Tuple<int, int> currentIndexData;                                   // packaged fieldCol/fieldRow
+            Tuple<int, int> packedIndex;                                        // packaged fieldCol/fieldRow
 
             // check that tile hasn't been clicked before
-            if (mineFieldData.IsVisible(fieldCol, fieldRow))
+            if (mineFieldEngine.IsVisible(fieldCol, fieldRow))
                 return;
 
             // check if tile is a mine before starting stack process
-            if (mineFieldData.IsMine(fieldCol, fieldRow))
+            if (mineFieldEngine.IsMine(fieldCol, fieldRow))
             {
                 mineFieldGUI.Controls[controlIndex].Text = "M";
                 gameOver = true;
@@ -82,16 +83,16 @@ namespace MSGame
             }
 
             // begin stack process to uncover one or more tiles
-            mineFieldData.SetVisible(fieldCol, fieldRow);
+            mineFieldEngine.SetVisible(fieldCol, fieldRow);
             tiles.Push(Tuple.Create(fieldCol, fieldRow));
             while (tiles.Count != 0)
             {
-                currentIndexData = tiles.Pop();                                 // grab next tile to uncover
-                fieldCol = currentIndexData.Item1;                              // unpack column index
-                fieldRow = currentIndexData.Item2;                              // unpack row index
-                linearIndex = fieldRow * mineFieldData.Width + fieldCol;        // get control index
-                value = mineFieldData.GetValue(fieldCol, fieldRow);             // get number of adjacent mines
-                ++visible;
+                packedIndex = tiles.Pop();                                      // grab next tile to uncover
+                fieldCol = packedIndex.Item1;                                   // unpack column index
+                fieldRow = packedIndex.Item2;                                   // unpack row index
+                linearIndex = fieldRow * mineFieldEngine.Width + fieldCol;      // get linear control index
+                value = mineFieldEngine.GetValue(fieldCol, fieldRow);           // get number of adjacent mines
+                ++visible;                                                      // update global for processing win condition
 
                 if (value != 0)
                     mineFieldGUI.Controls[linearIndex].Text = value.ToString();
@@ -103,9 +104,9 @@ namespace MSGame
 
                     for (int col = fieldCol - 1; col < fieldCol + 2; ++col)
                         for (int row = fieldRow - 1; row < fieldRow + 2; ++row)
-                            if (!mineFieldData.IsOutOfBounds(col, row) && !mineFieldData.IsVisible(col, row))
+                            if (!mineFieldEngine.IsOutOfBounds(col, row) && !mineFieldEngine.IsVisible(col, row))
                             {
-                                mineFieldData.SetVisible(col, row);
+                                mineFieldEngine.SetVisible(col, row);
                                 tiles.Push(Tuple.Create(col, row));
                             }
                 }
@@ -137,7 +138,7 @@ namespace MSGame
         {
             if (gameOver)
                 MessageBox.Show("You have lost!");
-            else if (mineFieldData.Width * mineFieldData.Height - visible == mineFieldData.Mines)
+            else if (mineFieldEngine.Width * mineFieldEngine.Height - visible == mineFieldEngine.Mines)
             {
                 gameOver = true;
                 MessageBox.Show("You have won!");
@@ -208,7 +209,7 @@ namespace MSGame
             // reset game flags/data to reflect a new game/new parameters
             gameOver = false;
             visible = 0;
-            mineFieldData = new MineField(columnNumber, rowNumber, mineNumber);
+            mineFieldEngine = new MineField(columnNumber, rowNumber, mineNumber);
 
             // create buttons for mineFieldGUI to represent each point on mineFieldData.field
             for (int j = 0; j < rowNumber; ++j)
