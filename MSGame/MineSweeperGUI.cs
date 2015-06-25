@@ -82,6 +82,7 @@ namespace MSGame
             }
 
             // begin stack process to uncover one or more tiles
+            mineFieldData.SetVisible(fieldCol, fieldRow);
             tiles.Push(Tuple.Create(fieldCol, fieldRow));
             while (tiles.Count != 0)
             {
@@ -90,16 +91,7 @@ namespace MSGame
                 fieldRow = currentIndexData.Item2;                              // unpack row index
                 linearIndex = fieldRow * mineFieldData.Width + fieldCol;        // get control index
                 value = mineFieldData.GetValue(fieldCol, fieldRow);             // get number of adjacent mines
-
-                if (mineFieldData.IsVisible(fieldCol, fieldRow))
-                {
-                    continue;
-                }
-                else
-                {
-                    mineFieldData.SetVisible(fieldCol, fieldRow);               // set mine visibility to avoid uncovering twice
-                    ++visible;                                                  // increment number of visible tiles
-                }
+                ++visible;
 
                 if (value != 0)
                     mineFieldGUI.Controls[linearIndex].Text = value.ToString();
@@ -111,8 +103,11 @@ namespace MSGame
 
                     for (int col = fieldCol - 1; col < fieldCol + 2; ++col)
                         for (int row = fieldRow - 1; row < fieldRow + 2; ++row)
-                            if (!mineFieldData.IsOutOfBounds(col, row))
+                            if (!mineFieldData.IsOutOfBounds(col, row) && !mineFieldData.IsVisible(col, row))
+                            {
+                                mineFieldData.SetVisible(col, row);
                                 tiles.Push(Tuple.Create(col, row));
+                            }
                 }
             }
         }
