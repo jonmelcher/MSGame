@@ -17,9 +17,9 @@ namespace MSGame
     public partial class MineSweeperGUI : Form
     {
         private const int rowNumberDefault = 10;        // default number of rows
-        private const int rowNumberMax = 100;           // maximum number of rows
+        private const int rowNumberMax = 50;            // maximum number of rows
         private const int columnNumberDefault = 10;     // default number of columns
-        private const int columnNumberMax = 100;        // maximum number of columns
+        private const int columnNumberMax = 50;         // maximum number of columns
         private const int mineNumberDefault = 10;       // default number of mines
         private const int tileDimension = 25;           // GUI dimension of mine tile
 
