@@ -173,7 +173,7 @@ namespace MSGame
         // *************************************************************************************
         private void MineFieldButtonClick(object sender, MouseEventArgs e)
         {
-            if (gameOver)
+            if (gameOver || ((Button)sender).FlatStyle == FlatStyle.Flat)
                 return;
 
             int controlIndex = mineFieldGUI.Controls.IndexOf((Control)sender);
